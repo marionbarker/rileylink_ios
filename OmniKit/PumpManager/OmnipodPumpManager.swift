@@ -1363,8 +1363,16 @@ extension OmnipodPumpManager: PumpManager {
             let dose = DoseEntry(type: .bolus, startDate: date, endDate: endDate, value: enactUnits, unit: .units)
             willRequest(dose)
 
-            let beep = self.confirmationBeeps
-            let result = session.bolus(units: enactUnits, acknowledgementBeep: beep, completionBeep: beep)
+            let automaticBolusBeeps = false // edit to enable confirmation only automatic bolus beeps
+
+            // Use an acknowledgement beep if Confirmation Beeps are enabled and this a manual bolus or Automatic Bolus Beeps are enabled
+            let acknowledgementBeep = self.confirmationBeeps && (!automatic || automaticBolusBeeps)
+            let completionBeep = self.confirmationBeeps && !automatic
+
+            // Use a maximum programReminderInterval value of 0x3F to denote an automatic bolus in the communication log
+            let programReminderInterval: TimeInterval = automatic ? TimeInterval(minutes: 0x3F) : 0
+
+            let result = session.bolus(units: enactUnits, acknowledgementBeep: acknowledgementBeep, completionBeep: completionBeep, programReminderInterval: programReminderInterval)
             session.dosesForStorage() { (doses) -> Bool in
                 return self.store(doses: doses, in: session)
             }
